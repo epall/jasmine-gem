@@ -2,6 +2,7 @@ module Jasmine
   class Config
     require 'yaml'
     require 'erb'
+    require 'sauce'
 
     def browser
       ENV["JASMINE_BROWSER"] || 'firefox'
@@ -11,10 +12,6 @@ module Jasmine
       ENV["JASMINE_HOST"] || 'http://localhost'
     end
 
-    def external_selenium_server_port
-      ENV['SELENIUM_SERVER_PORT'] && ENV['SELENIUM_SERVER_PORT'].to_i > 0 ? ENV['SELENIUM_SERVER_PORT'].to_i : nil
-    end
-
     def start_server(port = 8888)
       handler = Rack::Handler.default
       handler.run Jasmine.app(self), :Port => port, :AccessLog => []
@@ -22,7 +19,7 @@ module Jasmine
 
     def start
       start_servers
-      @client = Jasmine::SeleniumDriver.new("localhost", @selenium_server_port, "*#{browser}", "#{jasmine_host}:#{@jasmine_server_port}/")
+      @client = Jasmine::SeleniumDriver.new(browser, "#{jasmine_host}:#{@jasmine_server_port}/")
       @client.connect
     end
 
@@ -44,21 +41,8 @@ module Jasmine
       ::RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
     end
 
-    def start_selenium_server
-      @selenium_server_port = external_selenium_server_port
-      if @selenium_server_port.nil?
-        @selenium_server_port = Jasmine::find_unused_port
-        require 'selenium_rc'
-        SeleniumRC::Server.send(:include, SeleniumServerForkHackForRSpec)
-        SeleniumRC::Server.boot("localhost", @selenium_server_port, :args => [windows? ? ">NUL" : "> /dev/null"])
-      else
-        Jasmine::wait_for_listener(@selenium_server_port, "selenium server")
-      end
-    end
-
     def start_servers
       start_jasmine_server
-      start_selenium_server
     end
 
     def run
@@ -172,22 +156,6 @@ module Jasmine
         match_files(src_dir, simple_config['stylesheets'])
       else
         []
-      end
-    end
-
-    module SeleniumServerForkHackForRSpec
-      # without this, Selenium's forked process will attempt to run specs a second time at exit;
-      # see http://www.ruby-forum.com/topic/212722
-      def self.included(base)
-        alias_method :fork_without_fix_for_rspec, :fork
-        alias_method :fork, :fork_with_fix_for_rspec
-      end
-
-      def fork_with_fix_for_rspec
-        fork_without_fix_for_rspec do
-          yield
-          at_exit { exit! }
-        end
       end
     end
   end
