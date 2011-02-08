@@ -38,6 +38,12 @@ namespace :jasmine do
 
     Jasmine::Config.new.start_server
   end
+
+  desc "Run specs using Sauce OnDemand"
+  task :sauce => "jasmine:require" do
+    ENV['JASMINE_SAUCE'] = "y"
+    Rake::Task["jasmine:ci"].invoke
+  end
 end
 
 desc "Run specs via server"

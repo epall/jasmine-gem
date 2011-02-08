@@ -1,10 +1,19 @@
 module Jasmine
   class SeleniumDriver
-    def initialize(selenium_browser_start_command, http_address)
+    def initialize(selenium_host, selenium_port, selenium_browser_start_command, http_address)
       require 'json/pure' unless defined?(JSON)
-      require 'sauce'
-      require 'uri'
-      @driver = Sauce::Selenium.new(:browser => selenium_browser_start_command, :browser_url => "http://jasmine.test/", :job_name => "Jasmine", :'record-video' => false, :'record-screenshots' => false)
+      if ENV['JASMINE_SAUCE'] == 'y'
+        require 'sauce'
+        @driver = Sauce::Selenium.new(:browser => selenium_browser_start_command.delete("*"), :browser_url => "http://jasmine.test/", :job_name => "Jasmine", :'record-video' => false, :'record-screenshots' => false)
+      else
+        require 'selenium/client'
+        @driver = Selenium::Client::Driver.new(
+          selenium_host,
+          selenium_port,
+          selenium_browser_start_command,
+          http_address
+        )
+      end
       @http_address = http_address
     end
 
@@ -13,18 +22,20 @@ module Jasmine
     end
 
     def connect
-      uri = URI.parse(@http_address)
-      puts "Setting up Sauce Connect..."
-      @connection = Sauce::Connect.new(:domain => "jasmine.test", :host => uri.host, :port => uri.port, :quiet => true)
-      @connection.wait_until_ready
-      puts "Sauce Connect ready."
+      if ENV['JASMINE_SAUCE'] == 'y'
+        uri = URI.parse(@http_address)
+        puts "Setting up Sauce Connect..."
+        @connection = Sauce::Connect.new(:domain => "jasmine.test", :host => uri.host, :port => uri.port, :quiet => true)
+        @connection.wait_until_ready
+        puts "Sauce Connect ready."
+      end
       @driver.start
       @driver.open("/")
     end
 
     def disconnect
       @driver.stop
-      @connection.disconnect
+      @connection.disconnect if @connection
     end
 
     def run
