@@ -13,7 +13,11 @@ Gem::Specification.new do |s|
   s.email              = %q{jasmine-js@googlegroups.com}
   s.homepage           = "http://pivotal.github.com/jasmine"
 
-  s.files              = `git ls-files`.split("\n")
+  s.files              = `git ls-files`.split("\n") + ["jasmine/example/SpecRunner.html",
+                                                       "jasmine/lib/jasmine-html.js",
+                                                       "jasmine/lib/jasmine.css",
+                                                       "jasmine/lib/jasmine.js",
+                                                       "jasmine/lib/json2.js"]
   s.test_files         = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables        = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }
   s.default_executable = %q{jasmine}
@@ -23,6 +27,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'json_pure', '~>1.4.3'
   s.add_dependency 'selenium-rc', '>= 2.2.1'
   s.add_dependency 'selenium-client', '>= 1.2.18'
+  s.add_dependency 'sauce', ">=0.16.2"
 
   if ENV['RAILS_ENV'] == 'rails2'
     # for development & test of Rails 2 Generators
